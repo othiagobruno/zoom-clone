@@ -1,120 +1,299 @@
-import { Box, Button, Center, HStack, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Center,
+  Divider,
+  HStack,
+  Image,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 import { useVideoActions } from "../hooks/useVideoActions";
 import { useStream } from "../hooks/useStream";
+import { BiMicrophone } from "react-icons/bi";
 
 import {
   BsMic,
   BsMicMute,
   BsCameraVideo,
   BsCameraVideoOff,
+  BsPersonPlus,
 } from "react-icons/bs";
 
-import { BiSlideshow } from "react-icons/bi";
+import { FiLogOut } from "react-icons/fi";
+import { Participant } from "@zoom/videosdk";
 
 function Zoom() {
-  const { users, stream, currentUser } = useStream();
+  const currentId = new URLSearchParams(window.location.search).get("id");
+  const callId = new URLSearchParams(window.location.search).get("callId");
+
+  const usersBackend = [
+    {
+      id: 1,
+      name: "Thiago Bruno",
+      email: "thiago@sensi.com",
+      admin: true,
+      avatar: "https://api.multiavatar.com/thiago.svg",
+    },
+    {
+      id: 2,
+      name: "Stefan",
+      email: "stefan@sensi.com",
+      avatar: "https://api.multiavatar.com/stefan.svg",
+    },
+    {
+      id: 3,
+      name: "José Carlos",
+      email: "jose@sensi.com",
+      avatar: "https://api.multiavatar.com/jose.svg",
+    },
+  ];
+
+  const currentUserBackend = usersBackend.find(
+    (user) => user.id === Number(currentId)
+  );
+
+  const { users, stream, currentUser } = useStream(callId!, currentUserBackend);
   const { toggleVideo, videoOn, isMuted, toggleAudio } =
     useVideoActions(stream);
 
+  const isAdmin = currentUserBackend?.admin === true;
+
   return (
-    <Box flex={1} h="100vh" w="full" bg="black">
-      <Box flex="1">
-        <Box
-          objectFit="cover"
-          as="video"
-          id="my-self-view-video"
-          w="100vw !important"
-          h="100vh !important"
-        />
+    <HStack flex={1} h="100vh" w="full" bg="#dfdfdf" p="40px" spacing={0}>
+      <Box
+        flex="1"
+        bg="#EEEEEE"
+        borderRadius="20px 0 0 20px"
+        p="30px"
+        pb="0"
+        h="full"
+        shadow="0px 15px 30px 0px rgba(0, 0, 0, 0.1)"
+      >
+        <Box>
+          <HStack pb="10px" justify="space-between">
+            <HStack>
+              <Text color="#222222" fontSize="30px" fontWeight="bold">
+                Assembleia Virtual
+              </Text>
 
-        <Box position="absolute" top="20px" right="20px">
-          {users
-            ?.filter((a) => a.userId !== currentUser?.userId)
-            .map((user) => (
-              <Box
-                key={String(user.userId)}
-                bg="black"
-                mb="10px"
-                borderRadius="10px"
-                p="10px"
-              >
-                <Text pb="5px" color="white" fontWeight="bold">
-                  {user?.displayName}
+              <HStack p="4px 10px" bg="#DEDEDE" borderRadius="30px">
+                <Box w="10px" h="10px" borderRadius="30px" bg="#7AAF5B" />
+                <Text fontSize="12px" color="#848484">
+                  ESTAMOS AO VIVO
                 </Text>
-                <Box
-                  as="canvas"
-                  id={`p-user-video-${user.userId}`}
-                  w="300px"
-                  height="200px"
-                  objectFit="cover"
-                />
+              </HStack>
+            </HStack>
 
-                <HStack w="full" justify="center" pt="10px">
+            <Button variant="unstyled">
+              <HStack>
+                <FiLogOut color="#888888" />
+                <Text color="#06152B">Sair da conferencia</Text>
+              </HStack>
+            </Button>
+          </HStack>
+
+          {isAdmin && (
+            <Box
+              flex={1}
+              w="full"
+              h="450px"
+              objectFit="cover"
+              as="video"
+              id="principal-video"
+              border="10px solid white"
+              borderRadius="20px"
+              bg="black"
+            />
+          )}
+
+          {!isAdmin && (
+            <Box
+              flex={1}
+              w="full"
+              h="540px"
+              objectFit="cover"
+              as="canvas"
+              id="principal-video-canvas"
+              border="10px solid white"
+              borderRadius="20px"
+              bg="black"
+            />
+          )}
+        </Box>
+
+        {isAdmin && (
+          <Center py="20px">
+            <HStack w="full" justify="center" spacing="20px">
+              <Button bg="white" borderRadius="50px" w="60px" h="60px">
+                <BsPersonPlus size={22} />
+              </Button>
+
+              <Button
+                bg="white"
+                borderRadius="50px"
+                w="60px"
+                h="60px"
+                onClick={() => toggleAudio()}
+              >
+                {!isMuted ? <BsMic size={22} /> : <BsMicMute size={22} />}
+              </Button>
+
+              <Button
+                bg={!videoOn ? "white" : "#DCAC36"}
+                borderRadius="60px"
+                w="60px"
+                h="60px"
+                onClick={toggleVideo}
+              >
+                {videoOn ? (
+                  <BsCameraVideo size={22} color="white" />
+                ) : (
+                  <BsCameraVideoOff size={22} />
+                )}
+              </Button>
+            </HStack>
+          </Center>
+        )}
+      </Box>
+
+      <Stack
+        flex="0.4"
+        bg="#F2F2F2"
+        h="full"
+        borderRadius="0 20px 20px 0"
+        shadow="0px 15px 30px 0px rgba(0, 0, 0, 0.1)"
+        p="30px"
+      >
+        <Box h="full">
+          {isAdmin && (
+            <Box position="relative">
+              <Text fontWeight="bold" fontSize="12px" pb="20px">
+                Lista de espera para falar
+              </Text>
+
+              <Center pb="50px" opacity={0.5}>
+                <Text>Nenhúm participante na lista de espera</Text>
+              </Center>
+
+              {([] as Participant[]).map((user, index) => (
+                <HStack
+                  pb="10px"
+                  key={String(user.userId)}
+                  justify="space-between"
+                  spacing="14px"
+                >
+                  <Image
+                    src={`https://api.multiavatar.com/stefan${user?.displayName}.svg`}
+                    w="45px"
+                    h="45px"
+                    borderRadius="50px"
+                    bg="grey.300"
+                  />
+
+                  <Box flex={1}>
+                    <Text
+                      fontSize="12px"
+                      fontWeight="bold"
+                      color="rgba(223, 145, 38, 1)"
+                    >
+                      {index + 1}° lugar na fila
+                    </Text>
+                    <Text fontSize="14px">{user?.displayName}</Text>
+                  </Box>
+
+                  <Button
+                    color="white"
+                    fontSize="12px"
+                    p="0px 20px"
+                    h="34px"
+                    bg={"#DCAC36"}
+                    borderRadius="40px"
+                    onClick={toggleVideo}
+                  >
+                    Autorizar
+                  </Button>
+                </HStack>
+              ))}
+
+              <Divider />
+            </Box>
+          )}
+
+          <Text fontWeight="bold" fontSize="12px" pb="20px">
+            Nesta reunião
+          </Text>
+
+          {users?.map((user, index) => (
+            <HStack
+              pb="10px"
+              key={String(user.userId)}
+              justify="space-between"
+              spacing="14px"
+            >
+              <Image
+                src={`https://api.multiavatar.com/stefan${user?.displayName}.svg`}
+                w="45px"
+                h="45px"
+                borderRadius="50px"
+                bg="grey.300"
+              />
+
+              <Box flex={1}>
+                {user?.isHost && (
+                  <Text
+                    fontSize="12px"
+                    fontWeight="bold"
+                    color="rgba(223, 145, 38, 1)"
+                  >
+                    Organizador
+                  </Text>
+                )}
+                <Text fontSize="14px">
+                  {user.userId !== currentUser?.userId
+                    ? user?.displayName
+                    : "Você"}
+                </Text>
+              </Box>
+
+              {isAdmin && user.userId !== currentUser?.userId && (
+                <HStack justify="center" pt="10px">
                   <Button
                     bg="white"
                     borderRadius="50px"
                     w="40px"
                     h="40px"
                     p="0"
-                    onClick={() => toggleAudio()}
+                    onClick={() => toggleAudio(user.userId)}
                   >
                     {!isMuted ? <BsMic size={18} /> : <BsMicMute size={18} />}
                   </Button>
-
-                  <Button
-                    bg={!videoOn ? "white" : "#97d1ff"}
-                    borderRadius="40px"
-                    w="40px"
-                    h="40px"
-                    p="0"
-                    onClick={toggleVideo}
-                  >
-                    {videoOn ? (
-                      <BsCameraVideo size={18} />
-                    ) : (
-                      <BsCameraVideoOff size={18} />
-                    )}
-                  </Button>
                 </HStack>
-              </Box>
-            ))}
-        </Box>
-      </Box>
-
-      <Box position="absolute" bottom={0} left="20px" right="20px">
-        <Center w="full" py="40px">
-          <HStack w="full" justify="center" spacing="20px">
-            <Button
-              bg="white"
-              borderRadius="50px"
-              w="60px"
-              h="60px"
-              onClick={() => toggleAudio()}
-            >
-              {!isMuted ? <BsMic size={22} /> : <BsMicMute size={22} />}
-            </Button>
-
-            <Button
-              bg={!videoOn ? "white" : "#97d1ff"}
-              borderRadius="60px"
-              w="60px"
-              h="60px"
-              onClick={toggleVideo}
-            >
-              {videoOn ? (
-                <BsCameraVideo size={22} />
-              ) : (
-                <BsCameraVideoOff size={22} />
               )}
-            </Button>
+            </HStack>
+          ))}
+        </Box>
 
-            <Button bg="white" borderRadius="50px" w="60px" h="60px">
-              <BiSlideshow size={22} />
+        {!isAdmin && (
+          <Box>
+            <Button
+              w="full"
+              color="black"
+              fontSize="12px"
+              p="0px 20px"
+              h="40px"
+              bg="white"
+              shadow="lg"
+              borderRadius="60px"
+              onClick={() => {}}
+              leftIcon={<BiMicrophone size={22} />}
+            >
+              Solicitar para falar
             </Button>
-          </HStack>
-        </Center>
-      </Box>
-    </Box>
+          </Box>
+        )}
+      </Stack>
+    </HStack>
   );
 }
 

@@ -13,7 +13,7 @@ export const useVideoActions = (stream?: typeof Stream) => {
       } else {
         setVideoOn(true);
         await stream?.startVideo({
-          videoElement: document.querySelector("#my-self-view-video") as any,
+          videoElement: document.querySelector("#principal-video") as any,
         });
       }
     } catch (error) {
@@ -21,15 +21,22 @@ export const useVideoActions = (stream?: typeof Stream) => {
     }
   };
 
-  const toggleAudio = useCallback(async () => {
-    if (isMuted) {
-      await stream?.unmuteAudio();
-      setIsMuted(false);
-    } else {
-      await stream?.muteAudio();
-      setIsMuted(true);
-    }
-  }, [stream, isMuted]);
+  const toggleAudio = useCallback(
+    async (userId?: number) => {
+      try {
+        if (isMuted) {
+          await stream?.unmuteAudio(userId);
+          setIsMuted(false);
+        } else {
+          await stream?.muteAudio(userId);
+          setIsMuted(true);
+        }
+      } catch (error) {
+        console.log("audio ", error);
+      }
+    },
+    [stream, isMuted]
+  );
 
   return { videoOn, toggleVideo, toggleAudio, isMuted };
 };
