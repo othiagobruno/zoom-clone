@@ -4,14 +4,12 @@ import {
   Center,
   Divider,
   HStack,
-  Image,
   Stack,
   Text,
 } from "@chakra-ui/react";
 import { useVideoActions } from "../hooks/useVideoActions";
 import { useStream } from "../hooks/useStream";
 import { BiMicrophone } from "react-icons/bi";
-
 import {
   BsMic,
   BsMicMute,
@@ -19,13 +17,16 @@ import {
   BsCameraVideoOff,
   BsPersonPlus,
 } from "react-icons/bs";
-
 import { FiLogOut } from "react-icons/fi";
-import { Participant } from "@zoom/videosdk";
+import { useWebsocket } from "../hooks/useWebsocket";
+import UserCardRequest from "../components/UserCardRequest";
+import UserCard from "../components/UserCard";
 
 function Zoom() {
   const currentId = new URLSearchParams(window.location.search).get("id");
   const callId = new URLSearchParams(window.location.search).get("callId");
+  const { requestMicrophone, requestedMicrophones, removeRequestedMicrophone } =
+    useWebsocket(callId ?? "");
 
   const usersBackend = [
     {
@@ -54,7 +55,7 @@ function Zoom() {
   );
 
   const { users, stream, currentUser } = useStream(callId!, currentUserBackend);
-  const { toggleVideo, videoOn, isMuted, toggleAudio } =
+  const { toggleVideo, videoOn, isMuted, toggleAudio, usersWithAudio } =
     useVideoActions(stream);
 
   const isAdmin = currentUserBackend?.admin === true;
@@ -172,48 +173,22 @@ function Zoom() {
                 Lista de espera para falar
               </Text>
 
-              <Center pb="50px" opacity={0.5}>
-                <Text>Nenhúm participante na lista de espera</Text>
-              </Center>
+              {requestedMicrophones.length === 0 && (
+                <Center pb="50px" opacity={0.5}>
+                  <Text>Nenhúm participante na lista de espera</Text>
+                </Center>
+              )}
 
-              {([] as Participant[]).map((user, index) => (
-                <HStack
-                  pb="10px"
+              {requestedMicrophones.map((user, index) => (
+                <UserCardRequest
+                  index={index}
+                  toggleAudio={(p) => {
+                    toggleAudio(p);
+                    removeRequestedMicrophone(user);
+                  }}
+                  user={user}
                   key={String(user.userId)}
-                  justify="space-between"
-                  spacing="14px"
-                >
-                  <Image
-                    src={`https://api.multiavatar.com/stefan${user?.displayName}.svg`}
-                    w="45px"
-                    h="45px"
-                    borderRadius="50px"
-                    bg="grey.300"
-                  />
-
-                  <Box flex={1}>
-                    <Text
-                      fontSize="12px"
-                      fontWeight="bold"
-                      color="rgba(223, 145, 38, 1)"
-                    >
-                      {index + 1}° lugar na fila
-                    </Text>
-                    <Text fontSize="14px">{user?.displayName}</Text>
-                  </Box>
-
-                  <Button
-                    color="white"
-                    fontSize="12px"
-                    p="0px 20px"
-                    h="34px"
-                    bg={"#DCAC36"}
-                    borderRadius="40px"
-                    onClick={toggleVideo}
-                  >
-                    Autorizar
-                  </Button>
-                </HStack>
+                />
               ))}
 
               <Divider />
@@ -224,53 +199,23 @@ function Zoom() {
             Nesta reunião
           </Text>
 
-          {users?.map((user, index) => (
-            <HStack
-              pb="10px"
+          {users.length === 0 && (
+            <Center pb="50px" opacity={0.5}>
+              <Text>Nenhúm participante</Text>
+            </Center>
+          )}
+
+          {users?.map((user) => (
+            <UserCard
+              currentUser={currentUser!}
+              isAdmin={isAdmin}
+              isMuted={
+                usersWithAudio.findIndex((u) => u === user.userId) === -1
+              }
+              toggleAudio={toggleAudio}
+              user={user}
               key={String(user.userId)}
-              justify="space-between"
-              spacing="14px"
-            >
-              <Image
-                src={`https://api.multiavatar.com/stefan${user?.displayName}.svg`}
-                w="45px"
-                h="45px"
-                borderRadius="50px"
-                bg="grey.300"
-              />
-
-              <Box flex={1}>
-                {user?.isHost && (
-                  <Text
-                    fontSize="12px"
-                    fontWeight="bold"
-                    color="rgba(223, 145, 38, 1)"
-                  >
-                    Organizador
-                  </Text>
-                )}
-                <Text fontSize="14px">
-                  {user.userId !== currentUser?.userId
-                    ? user?.displayName
-                    : "Você"}
-                </Text>
-              </Box>
-
-              {isAdmin && user.userId !== currentUser?.userId && (
-                <HStack justify="center" pt="10px">
-                  <Button
-                    bg="white"
-                    borderRadius="50px"
-                    w="40px"
-                    h="40px"
-                    p="0"
-                    onClick={() => toggleAudio(user.userId)}
-                  >
-                    {!isMuted ? <BsMic size={18} /> : <BsMicMute size={18} />}
-                  </Button>
-                </HStack>
-              )}
-            </HStack>
+            />
           ))}
         </Box>
 
@@ -285,7 +230,7 @@ function Zoom() {
               bg="white"
               shadow="lg"
               borderRadius="60px"
-              onClick={() => {}}
+              onClick={() => requestMicrophone(currentUser!)}
               leftIcon={<BiMicrophone size={22} />}
             >
               Solicitar para falar

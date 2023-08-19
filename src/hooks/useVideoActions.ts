@@ -5,6 +5,8 @@ export const useVideoActions = (stream?: typeof Stream) => {
   const [videoOn, setVideoOn] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
 
+  const [usersWithAudio, setUsersWithAudio] = useState<number[]>([]);
+
   const toggleVideo = async () => {
     try {
       if (videoOn) {
@@ -25,18 +27,31 @@ export const useVideoActions = (stream?: typeof Stream) => {
     async (userId?: number) => {
       try {
         if (isMuted) {
+          if (userId) {
+            setUsersWithAudio([...usersWithAudio, userId]);
+          } else {
+            setIsMuted(false);
+          }
+
           await stream?.unmuteAudio(userId);
-          setIsMuted(false);
         } else {
+          if (userId) {
+            const newUsersWithAudio = usersWithAudio.filter(
+              (user) => user !== userId
+            );
+            setUsersWithAudio(newUsersWithAudio);
+          } else {
+            setIsMuted(true);
+          }
+
           await stream?.muteAudio(userId);
-          setIsMuted(true);
         }
       } catch (error) {
         console.log("audio ", error);
       }
     },
-    [stream, isMuted]
+    [stream, isMuted, usersWithAudio]
   );
 
-  return { videoOn, toggleVideo, toggleAudio, isMuted };
+  return { videoOn, toggleVideo, toggleAudio, isMuted, usersWithAudio };
 };
