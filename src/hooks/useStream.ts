@@ -21,10 +21,12 @@ export const useStream = (
 ) => {
   const client = useContext(zoomContext);
   client.init("en-US", "CDN");
+
   const [currentUser, setCurrentUser] = useState<Participant>();
   const [stream, setStream] = useState<typeof Stream>(); // eslint-disable-line
   const [users, setUsers] = useState<Participant[]>([]);
   const { toggleAudio } = useVideoActions(stream);
+  const [started, setStarted] = useState(false);
 
   useEffect(() => {
     startVideo();
@@ -37,20 +39,26 @@ export const useStream = (
 
   useEffect(() => {
     if (!!stream) {
-      client.on("host-ask-unmute-audio", (payload) => {
-        toggleAudio();
+      client.on("passively-stop-share", (payload) => {
+        stream.stopShareScreen().catch((e) => console.log(e));
       });
+      client.on("host-ask-unmute-audio", (payload) => {
+        toggleAudio().catch((e) => console.log(e));
+      });
+
       client.on("peer-video-state-change", async (payload) => {
         if (payload.action === "Start") {
           showManagerVideo();
         } else if (payload.action === "Stop") {
-          stream?.stopRenderVideo(
-            document.querySelector("#principal-video-canvas")!,
-            payload.userId
-          );
+          stream
+            ?.stopRenderVideo(
+              document.querySelector("#principal-video-canvas")!,
+              payload.userId
+            )
+            .catch((e) => console.log(e));
         }
 
-        loadUsersInfo();
+        loadUsersInfo().catch((e) => console.log(e));
       });
     }
   }, [stream, client]);
@@ -99,7 +107,10 @@ export const useStream = (
           }
         } else {
           await showManagerVideo();
+          await showManagerVideo();
         }
+
+        setStarted(true);
 
         try {
           await stream.startAudio({ mute: true });
@@ -125,25 +136,28 @@ export const useStream = (
   };
 
   const showManagerVideo = async () => {
-    const allUsers = client.getAllUser();
-    const findManagerUser = allUsers.find((u) => u.isHost);
-
-    if (!!findManagerUser) {
-      try {
-        await stream?.renderVideo(
-          document.querySelector("#principal-video-canvas")!,
-          findManagerUser.userId,
-          920,
-          920,
-          0,
-          0,
-          3
-        );
-      } catch (e) {
-        //
+    try {
+      const allUsers = await client.getAllUser();
+      const findManagerUser = allUsers.find((u) => u.isHost);
+      if (!!findManagerUser) {
+        try {
+          await stream?.renderVideo(
+            document.querySelector("#principal-video-canvas")!,
+            findManagerUser.userId,
+            920,
+            920,
+            0,
+            0,
+            3
+          );
+        } catch (error) {
+          //
+        }
       }
+    } catch (error) {
+      console.log("erro ao renderizar video do gerente: ", error);
     }
   };
 
-  return { startVideo, users, stream, client, currentUser };
+  return { startVideo, users, started, stream, client, currentUser };
 };

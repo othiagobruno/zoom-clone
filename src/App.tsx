@@ -1,7 +1,7 @@
 import { Box } from "@chakra-ui/react";
-import Zoom from "./video";
 import ZoomContext from "./context/zoom.context";
 import ZoomVideo from "@zoom/videosdk";
+import { Zoom } from "./video";
 
 function App() {
   const client = ZoomVideo.createClient();
