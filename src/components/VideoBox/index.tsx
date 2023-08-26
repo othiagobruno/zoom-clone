@@ -1,25 +1,32 @@
 import React from "react";
-import { Box, Button, Center, HStack, Text } from "@chakra-ui/react";
+import { Box, Button, Center, HStack, Stack, Text } from "@chakra-ui/react";
 
 import {
   BsMic,
   BsMicMute,
   BsCameraVideo,
   BsCameraVideoOff,
-  BsPersonPlus,
 } from "react-icons/bs";
 import { FiLogOut } from "react-icons/fi";
 import { LuScreenShare, LuScreenShareOff } from "react-icons/lu";
 import { useVideoActions } from "../../hooks/useVideoActions";
-import { Stream, VideoClient } from "@zoom/videosdk";
+import { Participant, Stream, VideoClient } from "@zoom/videosdk";
 
 interface VideoBoxProps {
   isAdmin: boolean;
   stream: typeof Stream;
   client: typeof VideoClient;
+  users: Participant[];
+  currentUser: Participant;
 }
 
-const VideoBox: React.FC<VideoBoxProps> = ({ isAdmin, stream, client }) => {
+const VideoBox: React.FC<VideoBoxProps> = ({
+  isAdmin,
+  stream,
+  client,
+  users,
+  currentUser,
+}) => {
   const {
     toggleVideo,
     videoOn,
@@ -36,11 +43,10 @@ const VideoBox: React.FC<VideoBoxProps> = ({ isAdmin, stream, client }) => {
       bg="#EEEEEE"
       borderRadius="20px 0 0 20px"
       p="30px"
-      pb="0"
       h="full"
       shadow="0px 15px 30px 0px rgba(0, 0, 0, 0.1)"
     >
-      <Box>
+      <Box h="full" display="flex" flexDirection="column">
         <HStack pb="10px" justify="space-between">
           <HStack>
             <Text color="#222222" fontSize="30px" fontWeight="bold">
@@ -63,112 +69,151 @@ const VideoBox: React.FC<VideoBoxProps> = ({ isAdmin, stream, client }) => {
           </Button>
         </HStack>
 
-        {isShareWithVideo && (
-          <Box
-            as="video"
-            id="my-screen-share-content-video"
-            flex={1}
-            w="full"
-            h="450px"
-            objectFit="cover"
-            border="10px solid white"
-            borderRadius="20px"
-            bg="black"
-            display={isSharing ? "block" : "none"}
-          />
-        )}
+        <HStack alignItems="start" flex={1}>
+          <Box flex={1} h="full">
+            {isShareWithVideo && (
+              <Box
+                flex={1}
+                h="full"
+                as="video"
+                id="my-screen-share-content-video"
+                objectFit="cover"
+                border="5px solid white"
+                borderRadius="20px"
+                bg="black"
+                display={isSharing ? "block" : "none"}
+              />
+            )}
 
-        {!isShareWithVideo && (
-          <Box
-            as="canvas"
-            id="my-screen-share-content-canvas"
-            flex={1}
-            w="full"
-            h="450px"
-            objectFit="cover"
-            border="10px solid white"
-            borderRadius="20px"
-            bg="black"
-            display={isSharing ? "block" : "none"}
-          />
-        )}
+            {!isShareWithVideo && (
+              <Box
+                flex={1}
+                h="full"
+                as="canvas"
+                id="my-screen-share-content-canvas"
+                objectFit="cover"
+                border="5px solid white"
+                borderRadius="20px"
+                bg="black"
+                display={isSharing ? "block" : "none"}
+              />
+            )}
 
-        {isAdmin && !isSharing && (
-          <Box
-            id="principal-video"
-            flex={1}
-            w="full"
-            h="450px"
-            objectFit="cover"
-            as="video"
-            border="10px solid white"
-            borderRadius="20px"
-            bg="black"
-          />
-        )}
+            {isAdmin && !isSharing && (
+              <Box
+                flex={1}
+                h="full"
+                id="principal-video"
+                objectFit="cover"
+                as="video"
+                border="5px solid white"
+                borderRadius="20px"
+                bg="black"
+              />
+            )}
 
-        {!isAdmin && !isSharing && (
-          <Box
-            flex={1}
-            w="full"
-            h="540px"
-            objectFit="cover"
-            as="canvas"
-            id="principal-video-canvas"
-            border="10px solid white"
-            borderRadius="20px"
-            bg="black"
-          />
+            {!isAdmin && !isSharing && (
+              <Box
+                flex={1}
+                h="full"
+                w="full"
+                objectFit="cover"
+                as="canvas"
+                id="principal-video-canvas"
+                border="5px solid white"
+                borderRadius="20px"
+                bg="black"
+              />
+            )}
+          </Box>
+
+          <Stack h="70vh" overflow="auto">
+            {users
+              ?.filter((a) => !a.isHost)
+              .map((user) => {
+                const isVideo = currentUser.userId === user.userId;
+
+                return (
+                  <Box
+                    key={String(user.userId)}
+                    bg="white"
+                    borderRadius="14px"
+                    p="6px"
+                  >
+                    <Text opacity={0.8} pb="5px" px="10px" fontSize="12px">
+                      {user?.displayName} {isVideo ? "(Você)" : ""}
+                    </Text>
+                    {isVideo ? (
+                      <Box
+                        as="video"
+                        id="user-video"
+                        w="280px"
+                        height="200px"
+                        objectFit="cover"
+                        borderRadius="12px"
+                        bg="black"
+                      />
+                    ) : (
+                      <Box
+                        as="canvas"
+                        id={`p-user-video-${user.userId}`}
+                        w="280px"
+                        height="200px"
+                        objectFit="cover"
+                        borderRadius="12px"
+                        bg="black"
+                      />
+                    )}
+                  </Box>
+                );
+              })}
+          </Stack>
+        </HStack>
+
+        {isAdmin && (
+          <Center pt="20px">
+            <HStack w="full" justify="center" spacing="20px">
+              <Button
+                bg="white"
+                borderRadius="50px"
+                w="60px"
+                h="60px"
+                onClick={() => toggleAudio()}
+              >
+                {!isMuted ? <BsMic size={22} /> : <BsMicMute size={22} />}
+              </Button>
+
+              <Button
+                bg={!videoOn ? "white" : "#DCAC36"}
+                borderRadius="60px"
+                w="60px"
+                h="60px"
+                onClick={() => toggleVideo(currentUser!)}
+              >
+                {videoOn ? (
+                  <BsCameraVideo size={22} color="white" />
+                ) : (
+                  <BsCameraVideoOff size={22} />
+                )}
+              </Button>
+
+              <Button
+                bg={!isSharing ? "white" : "#DCAC36"}
+                borderRadius="60px"
+                w="60px"
+                h="60px"
+                onClick={toggleShare}
+              >
+                {isSharing ? (
+                  <LuScreenShareOff size={22} color="white" />
+                ) : (
+                  <LuScreenShare size={22} />
+                )}
+              </Button>
+            </HStack>
+          </Center>
         )}
       </Box>
-
-      {isAdmin && (
-        <Center py="20px">
-          <HStack w="full" justify="center" spacing="20px">
-            <Button bg="white" borderRadius="50px" w="60px" h="60px">
-              <BsPersonPlus size={22} />
-            </Button>
-
-            <Button
-              bg="white"
-              borderRadius="50px"
-              w="60px"
-              h="60px"
-              onClick={() => toggleAudio()}
-            >
-              {!isMuted ? <BsMic size={22} /> : <BsMicMute size={22} />}
-            </Button>
-
-            <Button
-              bg={!videoOn ? "white" : "#DCAC36"}
-              borderRadius="60px"
-              w="60px"
-              h="60px"
-              onClick={toggleVideo}
-            >
-              {videoOn ? (
-                <BsCameraVideo size={22} color="white" />
-              ) : (
-                <BsCameraVideoOff size={22} />
-              )}
-            </Button>
-
-            <Button
-              bg={!isSharing ? "white" : "#DCAC36"}
-              borderRadius="60px"
-              w="60px"
-              h="60px"
-              onClick={toggleShare}
-            >
-              {isSharing ? (
-                <LuScreenShareOff size={22} color="white" />
-              ) : (
-                <LuScreenShare size={22} />
-              )}
-            </Button>
-          </HStack>
-        </Center>
-      )}
     </Box>
   );
 };

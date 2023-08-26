@@ -39,8 +39,11 @@ const UserCard: React.FC<Props> = ({
             Organizador
           </Text>
         )}
+
         <Text fontSize="14px">
-          {user.userId !== currentUser?.userId ? user?.displayName : "Você"}
+          {user.userId !== currentUser?.userId
+            ? user?.displayName
+            : `${user?.displayName} (Você)`}
         </Text>
       </Box>
 

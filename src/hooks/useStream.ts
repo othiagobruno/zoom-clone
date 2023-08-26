@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import ZoomVideo, { Participant, Stream } from "@zoom/videosdk";
 import { generateSignature } from "../utils/singature";
-import { useCallback, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import zoomContext from "../context/zoom.context";
 import { useVideoActions } from "./useVideoActions";
 const sdkKey = "X1k75GMu0ULCaz26yBa5iRev43eRHisvHPVE";
@@ -29,8 +29,8 @@ export const useStream = (
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    startVideo();
-    loadUsersInfo();
+    startVideo().catch((e) => console.log(e));
+    loadUsersInfo().catch((e) => console.log(e));
 
     return () => {
       ZoomVideo.destroyClient();
@@ -42,28 +42,23 @@ export const useStream = (
       client.on("passively-stop-share", (payload) => {
         stream.stopShareScreen().catch((e) => console.log(e));
       });
+
       client.on("host-ask-unmute-audio", (payload) => {
         toggleAudio().catch((e) => console.log(e));
       });
 
-      client.on("peer-video-state-change", async (payload) => {
+      client.on("peer-video-state-change", (payload) => {
         if (payload.action === "Start") {
-          showManagerVideo();
+          renderUsersVideo().catch((e) => console.log(e));
         } else if (payload.action === "Stop") {
-          stream
-            ?.stopRenderVideo(
-              document.querySelector("#principal-video-canvas")!,
-              payload.userId
-            )
-            .catch((e) => console.log(e));
+          stopRenderUsersVideo(payload.userId).catch((e) => console.log(e));
         }
-
         loadUsersInfo().catch((e) => console.log(e));
       });
     }
   }, [stream, client]);
 
-  const startVideo = useCallback(async () => {
+  const startVideo = async () => {
     if (!!currentUserBackend && !!callId) {
       try {
         try {
@@ -85,7 +80,10 @@ export const useStream = (
 
         const stream = client.getMediaStream();
         setStream(stream);
-        loadUsersInfo();
+
+        try {
+          loadUsersInfo();
+        } catch (error) {}
 
         if (currentUserBackend.admin) {
           try {
@@ -106,8 +104,25 @@ export const useStream = (
             //
           }
         } else {
-          await showManagerVideo();
-          await showManagerVideo();
+          try {
+            await stream.startVideo({
+              videoElement: document.querySelector(`#user-video`) as any,
+              hd: true,
+            });
+            await stream.renderVideo(
+              document.querySelector(
+                `#p-user-video-${client.getCurrentUserInfo().userId}`
+              )!,
+              client.getCurrentUserInfo().userId,
+              1920,
+              1080,
+              0,
+              0,
+              3
+            );
+            await renderUsersVideo();
+            await renderUsersVideo();
+          } catch (error) {}
         }
 
         setStarted(true);
@@ -121,7 +136,7 @@ export const useStream = (
         console.log("erro start: ", error);
       }
     }
-  }, [client, currentUserBackend, callId]);
+  };
 
   const loadUsersInfo = async () => {
     try {
@@ -129,29 +144,67 @@ export const useStream = (
       const uUsers = client.getAllUser();
       setUsers(uUsers);
       setCurrentUser(cUser);
-      showManagerVideo();
+      renderUsersVideo();
     } catch (error) {
       console.log("erro ao carregar usuarios: ", error);
     }
   };
 
-  const showManagerVideo = async () => {
+  const stopRenderUsersVideo = async (userId: number) => {
     try {
-      const allUsers = await client.getAllUser();
-      const findManagerUser = allUsers.find((u) => u.isHost);
-      if (!!findManagerUser) {
-        try {
-          await stream?.renderVideo(
+      const allUsers = client.getAllUser();
+      const findUser = allUsers.find((user) => user.userId === userId);
+
+      if (findUser?.isHost) {
+        await stream
+          ?.stopRenderVideo(
             document.querySelector("#principal-video-canvas")!,
-            findManagerUser.userId,
-            920,
-            920,
-            0,
-            0,
-            3
-          );
-        } catch (error) {
-          //
+            userId
+          )
+          .catch((e) => console.log(e));
+      } else {
+        await stream
+          ?.stopRenderVideo(
+            document.querySelector(`#p-user-video-${userId}`)!,
+            userId
+          )
+          .catch((e) => console.log(e));
+      }
+    } catch (error) {
+      console.log("erro ao parar de renderizar video do gerente: ", error);
+    }
+  };
+
+  const renderUsersVideo = async () => {
+    try {
+      const allUsers = client.getAllUser();
+      for (let i = 0; i < allUsers.length; i++) {
+        const user = allUsers[i];
+
+        if (user.isHost) {
+          await stream
+            ?.renderVideo(
+              document.querySelector("#principal-video-canvas")!,
+              user.userId,
+              920,
+              920,
+              0,
+              0,
+              3
+            )
+            .catch((e) => console.log(e));
+        } else {
+          await stream
+            ?.renderVideo(
+              document.querySelector(`#p-user-video-${user.userId}`)!,
+              user.userId,
+              560,
+              540,
+              0,
+              0,
+              2
+            )
+            .catch((e) => console.log(e));
         }
       }
     } catch (error) {
@@ -159,5 +212,13 @@ export const useStream = (
     }
   };
 
-  return { startVideo, users, started, stream, client, currentUser };
+  return {
+    startVideo,
+    users,
+    started,
+    stream,
+    client,
+    currentUser,
+    renderUsersVideo,
+  };
 };

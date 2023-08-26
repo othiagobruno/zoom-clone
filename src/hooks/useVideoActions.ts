@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Stream, VideoClient } from "@zoom/videosdk";
+import { Participant, Stream, VideoClient } from "@zoom/videosdk";
 
 export const useVideoActions = (
   stream?: typeof Stream,
@@ -51,16 +51,23 @@ export const useVideoActions = (
     }
   };
 
-  const toggleVideo = async () => {
+  const toggleVideo = async (user?: Participant) => {
     try {
       if (videoOn) {
         setVideoOn(false);
         await stream?.stopVideo();
       } else {
         setVideoOn(true);
-        await stream?.startVideo({
-          videoElement: document.querySelector("#principal-video") as any,
-        });
+        if (user?.isHost) {
+          await stream?.startVideo({
+            videoElement: document.querySelector("#principal-video") as any,
+            hd: true,
+          });
+        } else {
+          await stream?.startVideo({
+            videoElement: document.querySelector(`#user-video`) as any,
+          });
+        }
       }
     } catch (error) {
       console.log(error);
