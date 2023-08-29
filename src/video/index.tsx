@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import {
   Box,
   Button,
@@ -8,62 +9,51 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
-import { useVideoActions } from "../hooks/useVideoActions";
-import { useStream } from "../hooks/useStream";
 import { BiMicrophone } from "react-icons/bi";
 import { useWebsocket } from "../hooks/useWebsocket";
 import UserCardRequest from "../components/UserCardRequest";
 import UserCard from "../components/UserCard";
 import VideoBox from "../components/VideoBox";
-import { BsCameraVideo, BsCameraVideoOff } from "react-icons/bs";
+import {
+  BsCameraVideo,
+  BsCameraVideoOff,
+  BsGrid,
+  BsGrid1X2,
+} from "react-icons/bs";
 import { useState } from "react";
 import ChatBox from "../components/ChatBox";
+import { useStream } from "../context/stream.context";
+import { LuScreenShare, LuScreenShareOff } from "react-icons/lu";
+import { useVideoActions } from "../context/video-actions.context";
 
 export function Zoom() {
   const [tab, setTab] = useState("people");
-  const currentId = new URLSearchParams(window.location.search).get("id");
-  const callId = new URLSearchParams(window.location.search).get("callId");
+
+  const {
+    users,
+    currentUser,
+    started,
+    client,
+    renderUsersVideo,
+    callId,
+    currentUserBackend,
+  } = useStream();
+
   const { requestMicrophone, requestedMicrophones, removeRequestedMicrophone } =
     useWebsocket(callId ?? "");
 
-  const usersBackend = [
-    {
-      id: 1,
-      name: "Thiago Bruno",
-      email: "thiago@sensi.com",
-      admin: true,
-      avatar: "https://api.multiavatar.com/thiago.svg",
-    },
-    {
-      id: 2,
-      name: "Stefan",
-      email: "stefan@sensi.com",
-      avatar: "https://api.multiavatar.com/stefan.svg",
-    },
-    {
-      id: 3,
-      name: "José Carlos",
-      email: "jose@sensi.com",
-      avatar: "https://api.multiavatar.com/jose.svg",
-    },
-    {
-      id: 4,
-      name: "Pedro Souza",
-      email: "pedro@sensi.com",
-      avatar: "https://api.multiavatar.com/jose.svg",
-    },
-  ];
-
-  const currentUserBackend = usersBackend.find(
-    (user) => user.id === Number(currentId)
-  );
-
-  const { users, stream, currentUser, started, client, renderUsersVideo } =
-    useStream(callId!, currentUserBackend);
-  const { toggleAudio, usersWithAudio, toggleVideo, videoOn } = useVideoActions(
-    stream,
-    client
-  );
+  const {
+    toggleAudio,
+    usersWithAudio,
+    toggleVideo,
+    videoOn,
+    toggleShare,
+    isSharing,
+    isMuted,
+    requestedMicrophone,
+    setIsGrid,
+    isGrid,
+  } = useVideoActions();
 
   const isAdmin = currentUserBackend?.admin === true;
 
@@ -83,24 +73,20 @@ export function Zoom() {
         bg="#dfdfdf"
         p="10px"
         spacing={0}
+        align="start"
       >
-        <VideoBox
-          users={users}
-          currentUser={currentUser!}
-          stream={stream!}
-          isAdmin={isAdmin}
-          client={client}
-        />
+        <VideoBox users={users} currentUser={currentUser!} isAdmin={isAdmin} />
 
-        <Stack
-          flex="0.3"
+        <Box
+          display="flex"
+          flexDirection="column"
+          flex="0.4"
           bg="#F2F2F2"
           h="full"
           borderRadius="0 20px 20px 0"
           shadow="0px 15px 30px 0px rgba(0, 0, 0, 0.1)"
-          p="30px"
         >
-          <HStack spacing={0} pb="20px">
+          <HStack spacing={0}>
             <Box
               onClick={() => setTab("people")}
               flex={1}
@@ -129,10 +115,11 @@ export function Zoom() {
               CHAT
             </Box>
           </HStack>
-          {tab === "chat" && <ChatBox client={client} isAdmin={isAdmin} />}
+
+          {tab === "chat" && <ChatBox client={client!} isAdmin={isAdmin} />}
 
           {tab === "people" && (
-            <Box h="full">
+            <Box overflow="auto" h="full" p="30px">
               {isAdmin && (
                 <Box position="relative">
                   <Text fontWeight="bold" fontSize="12px" pb="20px">
@@ -140,7 +127,7 @@ export function Zoom() {
                   </Text>
 
                   {requestedMicrophones.length === 0 && (
-                    <Center pb="50px" opacity={0.5}>
+                    <Center pb="20px" opacity={0.5}>
                       <Text>Nenhúm participante na lista de espera</Text>
                     </Center>
                   )}
@@ -157,7 +144,7 @@ export function Zoom() {
                     />
                   ))}
 
-                  <Divider />
+                  <Divider mb="10px" />
                 </Box>
               )}
 
@@ -171,34 +158,86 @@ export function Zoom() {
                 </Center>
               )}
 
-              {users?.map((user) => (
-                <UserCard
-                  currentUser={currentUser!}
-                  isAdmin={isAdmin}
-                  isMuted={!usersWithAudio.find((u) => u === user.userId)}
-                  toggleAudio={toggleAudio}
-                  user={user}
-                  key={String(user.userId)}
-                />
-              ))}
+              <Box flex={1}>
+                {users?.map((user) => (
+                  <UserCard
+                    currentUser={currentUser!}
+                    isAdmin={isAdmin}
+                    isMuted={!usersWithAudio.find((u) => u === user.userId)}
+                    toggleAudio={toggleAudio}
+                    user={user}
+                    key={String(user.userId)}
+                  />
+                ))}
+              </Box>
             </Box>
           )}
 
           {!isAdmin && (
-            <Stack>
+            <Stack p="20px">
               <Button
-                w="full"
-                color="black"
+                bg="white"
+                borderRadius="60px"
                 fontSize="12px"
                 p="0px 20px"
                 h="40px"
-                bg="white"
+                shadow="lg"
+                leftIcon={
+                  isGrid ? <BsGrid1X2 size={20} /> : <BsGrid size={22} />
+                }
+                onClick={() => setIsGrid((m) => !m)}
+              >
+                Mudar Visualização
+              </Button>
+
+              {!isMuted && (
+                <Button
+                  w="full"
+                  color={requestedMicrophone ? "white" : "black"}
+                  fontSize="12px"
+                  p="0px 20px"
+                  h="40px"
+                  bg={requestedMicrophone ? "black" : "white"}
+                  shadow="lg"
+                  borderRadius="60px"
+                  onClick={() => {
+                    toggleShare();
+                  }}
+                  leftIcon={
+                    isSharing ? (
+                      <LuScreenShareOff size={22} color="white" />
+                    ) : (
+                      <LuScreenShare size={22} />
+                    )
+                  }
+                >
+                  {isSharing ? "Parar de compartilhar" : "Compartilhar tela"}
+                </Button>
+              )}
+
+              <Button
+                w="full"
+                color={requestedMicrophone ? "white" : "black"}
+                fontSize="12px"
+                p="0px 20px"
+                h="40px"
+                bg={requestedMicrophone ? "black" : "white"}
                 shadow="lg"
                 borderRadius="60px"
-                onClick={() => requestMicrophone(currentUser!)}
+                onClick={() => {
+                  if (!isMuted) {
+                    toggleAudio();
+                  } else {
+                    requestMicrophone(currentUser!);
+                  }
+                }}
                 leftIcon={<BiMicrophone size={22} />}
               >
-                Solicitar para falar
+                {!isMuted
+                  ? "Desativar áudio"
+                  : requestedMicrophone
+                  ? "Solicitando o microfone..."
+                  : "Solicitar para falar"}
               </Button>
 
               <Button
@@ -226,7 +265,7 @@ export function Zoom() {
               </Button>
             </Stack>
           )}
-        </Stack>
+        </Box>
       </HStack>
     </Box>
   );

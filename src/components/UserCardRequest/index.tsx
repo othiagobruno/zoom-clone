@@ -1,6 +1,7 @@
 import { Box, Button, HStack, Image, Text } from "@chakra-ui/react";
 import { Participant } from "@zoom/videosdk";
 import React from "react";
+import { useVideoActions } from "../../context/video-actions.context";
 
 interface Props {
   user: Participant;
@@ -8,7 +9,9 @@ interface Props {
   index: number;
 }
 
-const UserCardRequest: React.FC<Props> = ({ toggleAudio, user, index }) => {
+const UserCardRequest: React.FC<Props> = ({ user, index }) => {
+  const { toggleAudio, removeRequestedMicrophone } = useVideoActions();
+
   return (
     <HStack
       pb="10px"
@@ -40,6 +43,7 @@ const UserCardRequest: React.FC<Props> = ({ toggleAudio, user, index }) => {
         borderRadius="40px"
         onClick={() => {
           toggleAudio(user.userId);
+          removeRequestedMicrophone(user);
         }}
       >
         Autorizar

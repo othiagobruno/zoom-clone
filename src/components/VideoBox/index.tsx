@@ -1,32 +1,36 @@
 import React from "react";
-import { Box, Button, Center, HStack, Stack, Text } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  Center,
+  Grid,
+  GridItem,
+  HStack,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 
 import {
   BsMic,
   BsMicMute,
   BsCameraVideo,
   BsCameraVideoOff,
+  BsGrid1X2,
+  BsGrid,
 } from "react-icons/bs";
 import { FiLogOut } from "react-icons/fi";
 import { LuScreenShare, LuScreenShareOff } from "react-icons/lu";
-import { useVideoActions } from "../../hooks/useVideoActions";
-import { Participant, Stream, VideoClient } from "@zoom/videosdk";
+
+import { Participant } from "@zoom/videosdk";
+import { useVideoActions } from "../../context/video-actions.context";
 
 interface VideoBoxProps {
   isAdmin: boolean;
-  stream: typeof Stream;
-  client: typeof VideoClient;
   users: Participant[];
   currentUser: Participant;
 }
 
-const VideoBox: React.FC<VideoBoxProps> = ({
-  isAdmin,
-  stream,
-  client,
-  users,
-  currentUser,
-}) => {
+const VideoBox: React.FC<VideoBoxProps> = ({ isAdmin, users, currentUser }) => {
   const {
     toggleVideo,
     videoOn,
@@ -34,15 +38,17 @@ const VideoBox: React.FC<VideoBoxProps> = ({
     toggleAudio,
     toggleShare,
     isSharing,
-    isShareWithVideo,
-  } = useVideoActions(stream, client);
+    isUserShare,
+    isGrid,
+    setIsGrid,
+  } = useVideoActions();
 
   return (
     <Box
       flex="1"
       bg="#EEEEEE"
       borderRadius="20px 0 0 20px"
-      p="30px"
+      p="15px 30px"
       h="full"
       shadow="0px 15px 30px 0px rgba(0, 0, 0, 0.1)"
     >
@@ -69,105 +75,86 @@ const VideoBox: React.FC<VideoBoxProps> = ({
           </Button>
         </HStack>
 
-        <HStack alignItems="start" flex={1}>
-          <Box flex={1} h="full">
-            {isShareWithVideo && (
-              <Box
-                flex={1}
-                h="full"
-                as="video"
-                id="my-screen-share-content-video"
-                objectFit="cover"
-                border="5px solid white"
-                borderRadius="20px"
-                bg="black"
-                display={isSharing ? "block" : "none"}
-              />
-            )}
+        <HStack flex={1} borderRadius="10px">
+          <Box
+            flex={1}
+            h="full"
+            display={isSharing || isUserShare ? "block" : "none"}
+          >
+            <Box
+              flex={1}
+              as="video"
+              id="share-video"
+              objectFit="cover"
+              border="5px solid white"
+              borderRadius="20px"
+              bg="black"
+              display={isSharing ? "block" : "none"}
+            />
 
-            {!isShareWithVideo && (
-              <Box
-                flex={1}
-                h="full"
-                as="canvas"
-                id="my-screen-share-content-canvas"
-                objectFit="cover"
-                border="5px solid white"
-                borderRadius="20px"
-                bg="black"
-                display={isSharing ? "block" : "none"}
-              />
-            )}
-
-            {isAdmin && !isSharing && (
-              <Box
-                flex={1}
-                h="full"
-                id="principal-video"
-                objectFit="cover"
-                as="video"
-                border="5px solid white"
-                borderRadius="20px"
-                bg="black"
-              />
-            )}
-
-            {!isAdmin && !isSharing && (
-              <Box
-                flex={1}
-                h="full"
-                w="full"
-                objectFit="cover"
-                as="canvas"
-                id="principal-video-canvas"
-                border="5px solid white"
-                borderRadius="20px"
-                bg="black"
-              />
-            )}
+            <Box
+              flex={1}
+              as="canvas"
+              id="share-canvas"
+              objectFit="cover"
+              border="5px solid white"
+              borderRadius="20px"
+              bg="black"
+              display={isUserShare ? "block" : "none"}
+            />
           </Box>
 
-          <Stack h="70vh" overflow="auto">
-            {users
-              ?.filter((a) => !a.isHost)
-              .map((user) => {
-                const isVideo = currentUser.userId === user.userId;
+          <Grid
+            gap={2}
+            templateColumns={isGrid ? "repeat(3, 1fr)" : "repeat(4, 1fr)"}
+            templateRows={isGrid ? "repeat(3, auto)" : "repeat(2, auto)"}
+          >
+            {users?.slice(0, isGrid ? 9 : 8).map((user, index) => {
+              const isVideo = currentUser.userId === user.userId;
 
-                return (
-                  <Box
-                    key={String(user.userId)}
-                    bg="white"
-                    borderRadius="14px"
-                    p="6px"
-                  >
-                    <Text opacity={0.8} pb="5px" px="10px" fontSize="12px">
+              return (
+                <GridItem
+                  colSpan={!isGrid && index === 0 ? 3 : 1}
+                  rowSpan={!isGrid && index === 0 ? 3 : 1}
+                  key={String(user.userId)}
+                  bg="white"
+                  p="6px"
+                  shadow="md"
+                  borderRadius="10px"
+                >
+                  <Stack flex={1} h="full">
+                    <Text px="10px" fontSize="12px" position="absolute">
                       {user?.displayName} {isVideo ? "(Você)" : ""}
                     </Text>
+
                     {isVideo ? (
                       <Box
                         as="video"
                         id="user-video"
-                        w="280px"
-                        height="200px"
                         objectFit="cover"
-                        borderRadius="12px"
-                        bg="black"
+                        bg="white"
+                        flex={1}
+                        h="full"
+                        w="full"
+                        borderRadius="10px"
                       />
                     ) : (
                       <Box
                         as="canvas"
-                        id={`p-user-video-${user.userId}`}
-                        w="280px"
-                        height="200px"
+                        id={`user-canvas-${user.userId}`}
                         objectFit="cover"
-                        borderRadius="12px"
-                        bg="black"
+                        bg="white"
+                        flex={1}
+                        h="full"
+                        w="full"
+                        borderRadius="10px"
                       />
                     )}
-                  </Box>
-                );
-              })}
-          </Stack>
+                  </Stack>
+                </GridItem>
+              );
+            })}
+          </Grid>
         </HStack>
 
         {isAdmin && (
@@ -209,6 +196,16 @@ const VideoBox: React.FC<VideoBoxProps> = ({
                 ) : (
                   <LuScreenShare size={22} />
                 )}
+              </Button>
+
+              <Button
+                bg="white"
+                borderRadius="60px"
+                w="60px"
+                h="60px"
+                onClick={() => setIsGrid((m) => !m)}
+              >
+                {isGrid ? <BsGrid1X2 size={20} /> : <BsGrid size={22} />}
               </Button>
             </HStack>
           </Center>

@@ -1,19 +1,17 @@
-import { Participant } from "@zoom/videosdk";
-import { useEffect, useState } from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
 import { io } from "socket.io-client";
+import { Participant } from "@zoom/videosdk";
+import { useEffect } from "react";
+import { useVideoActions } from "../context/video-actions.context";
 const socket = io("http://localhost:3333");
 
 export const useWebsocket = (callId?: string) => {
-  const [requestedMicrophones, setRequestMicrophones] = useState<Participant[]>(
-    []
-  );
-
-  const removeRequestedMicrophone = (participant: Participant) => {
-    const updatedRequestedMicrophones = requestedMicrophones.filter(
-      (p) => p.userId !== participant.userId
-    );
-    setRequestMicrophones(updatedRequestedMicrophones);
-  };
+  const {
+    setRequestedMicrophone,
+    requestedMicrophones,
+    setRequestMicrophones,
+    removeRequestedMicrophone,
+  } = useVideoActions();
 
   useEffect(() => {
     socket.on("connect", () => {
@@ -34,6 +32,7 @@ export const useWebsocket = (callId?: string) => {
   }, [callId, requestedMicrophones]);
 
   const requestMicrophone = (participant: Participant) => {
+    setRequestedMicrophone(true);
     socket.emit("requestMicrophone", {
       id: callId,
       payload: participant,

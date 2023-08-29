@@ -27,8 +27,13 @@ const ChatBox: React.FC<Props> = ({ client, isAdmin }) => {
   };
 
   return (
-    <Stack h="full" flex={1}>
-      <Stack flex={1} overflow="auto" maxH={isAdmin ? "74vh" : "58vh"}>
+    <Stack
+      p="30px"
+      h="full"
+      flex={1}
+      maxH={isAdmin ? "calc(100% - 50px)" : "calc(100% - 150px)"}
+    >
+      <Stack flex={1} overflow="auto">
         {messages.map((message, index) => (
           <Box key={index} pb="10px">
             <HStack>
@@ -48,7 +53,7 @@ const ChatBox: React.FC<Props> = ({ client, isAdmin }) => {
         <div ref={messagesEndRef} />
       </Stack>
 
-      <HStack pb="10px">
+      <HStack py="20px">
         <Input
           style={{
             backgroundColor: "white",
