@@ -31,7 +31,7 @@ interface Props {
 }
 
 export const VideoActionProvider: React.FC<Props> = ({ children }) => {
-  const { client, stream } = useStream();
+  const { client, stream, getUsers } = useStream();
 
   const [isGrid, setIsGrid] = useState(false);
   const [usersWithAudio, setUsersWithAudio] = useState<number[]>([]);
@@ -46,8 +46,14 @@ export const VideoActionProvider: React.FC<Props> = ({ children }) => {
   );
 
   useEffect(() => {
+    stream?.startVideo({
+      videoElement: document.querySelector(`#user-video`) as any,
+    });
+  }, [stream]);
+
+  useEffect(() => {
     client?.on("current-audio-change", async (payload) => {
-      console.log("current-audio-change", { payload });
+      getUsers();
 
       if (payload.action === "unmuted") {
         setIsMuted(false);
@@ -57,7 +63,7 @@ export const VideoActionProvider: React.FC<Props> = ({ children }) => {
     });
 
     client?.on("host-ask-unmute-audio", async (payload) => {
-      console.log("host-ask-unmute-audio", { payload });
+      getUsers();
       await toggleAudio();
       setRequestedMicrophone(false);
       setAbleToShare(true);
@@ -66,7 +72,7 @@ export const VideoActionProvider: React.FC<Props> = ({ children }) => {
 
   useEffect(() => {
     client?.on("user-updated", (payload) => {
-      console.log("user-updated", { payload });
+      getUsers();
       for (let user of payload) {
         if (user.muted === false) {
           setUsersWithAudio((old) => [...old, user.userId]);
@@ -78,9 +84,10 @@ export const VideoActionProvider: React.FC<Props> = ({ children }) => {
 
     client?.on("active-share-change", (payload) => {
       if (payload.state === "Active") {
+        getUsers();
         setIsUserSharing(true);
         stream?.startShareView(
-          document.querySelector("#my-screen-share-content-canvas")!,
+          document.querySelector(`#user-canvas-${payload.userId}`)!,
           payload.userId
         );
       } else if (payload.state === "Inactive") {
@@ -95,17 +102,18 @@ export const VideoActionProvider: React.FC<Props> = ({ children }) => {
       if (!isSharing) {
         setIsSharing(true);
         if (stream?.isStartShareScreenWithVideoElement()) {
-          await stream.startShareScreen(
-            document.querySelector("#share-video")!
-          );
+          await stream.startShareScreen(document.querySelector("#user-video")!);
         } else {
           await stream?.startShareScreen(
-            document.querySelector("#share-canvas")!
+            document.querySelector(
+              `#user-canvas-${client?.getCurrentUserInfo().userId}`
+            )!
           );
         }
       } else {
         setIsSharing(false);
         await stream?.stopShareScreen();
+        toggleVideo();
       }
     } catch (error) {
       console.log("Erro ao compratilhar tela", error);

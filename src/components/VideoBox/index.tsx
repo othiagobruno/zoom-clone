@@ -20,7 +20,7 @@ import {
 } from "react-icons/bs";
 import { FiLogOut } from "react-icons/fi";
 import { LuScreenShare, LuScreenShareOff } from "react-icons/lu";
-
+import _ from "lodash";
 import { Participant } from "@zoom/videosdk";
 import { useVideoActions } from "../../context/video-actions.context";
 
@@ -38,7 +38,6 @@ const VideoBox: React.FC<VideoBoxProps> = ({ isAdmin, users, currentUser }) => {
     toggleAudio,
     toggleShare,
     isSharing,
-    isUserShare,
     isGrid,
     setIsGrid,
   } = useVideoActions();
@@ -76,84 +75,67 @@ const VideoBox: React.FC<VideoBoxProps> = ({ isAdmin, users, currentUser }) => {
         </HStack>
 
         <HStack flex={1} borderRadius="10px">
-          <Box
-            flex={1}
-            h="full"
-            display={isSharing || isUserShare ? "block" : "none"}
-          >
-            <Box
-              flex={1}
-              as="video"
-              id="share-video"
-              objectFit="cover"
-              border="5px solid white"
-              borderRadius="20px"
-              bg="black"
-              display={isSharing ? "block" : "none"}
-            />
-
-            <Box
-              flex={1}
-              as="canvas"
-              id="share-canvas"
-              objectFit="cover"
-              border="5px solid white"
-              borderRadius="20px"
-              bg="black"
-              display={isUserShare ? "block" : "none"}
-            />
-          </Box>
-
           <Grid
             gap={2}
             templateColumns={isGrid ? "repeat(3, 1fr)" : "repeat(4, 1fr)"}
             templateRows={isGrid ? "repeat(3, auto)" : "repeat(2, auto)"}
           >
-            {users?.slice(0, isGrid ? 9 : 8).map((user, index) => {
-              const isVideo = currentUser.userId === user.userId;
+            {_.orderBy(users, ["muted", "isHost"], ["asc", "desc"]).map(
+              (user, index) => {
+                const isVideo = currentUser.userId === user.userId;
 
-              return (
-                <GridItem
-                  colSpan={!isGrid && index === 0 ? 3 : 1}
-                  rowSpan={!isGrid && index === 0 ? 3 : 1}
-                  key={String(user.userId)}
-                  bg="white"
-                  p="6px"
-                  shadow="md"
-                  borderRadius="10px"
-                >
-                  <Stack flex={1} h="full">
-                    <Text px="10px" fontSize="12px" position="absolute">
-                      {user?.displayName} {isVideo ? "(Você)" : ""}
-                    </Text>
+                return (
+                  <GridItem
+                    colSpan={!isGrid && index === 0 ? 3 : 1}
+                    rowSpan={!isGrid && index === 0 ? 3 : 1}
+                    key={String(user.userId)}
+                    bg="white"
+                    p="6px"
+                    shadow="md"
+                    borderRadius="4px"
+                  >
+                    <Stack flex={1} h="full" position="relative">
+                      <Text
+                        bg="rgba(0,0,0,0.3)"
+                        px="10px"
+                        fontSize="12px"
+                        position="absolute"
+                        borderRadius="10px"
+                        color="white"
+                        top="5px"
+                        left="5px"
+                      >
+                        {index + 1} - {user?.displayName}{" "}
+                        {isVideo ? "(Você)" : ""}
+                      </Text>
 
-                    {isVideo ? (
-                      <Box
-                        as="video"
-                        id="user-video"
-                        objectFit="cover"
-                        bg="white"
-                        flex={1}
-                        h="full"
-                        w="full"
-                        borderRadius="10px"
-                      />
-                    ) : (
-                      <Box
-                        as="canvas"
-                        id={`user-canvas-${user.userId}`}
-                        objectFit="cover"
-                        bg="white"
-                        flex={1}
-                        h="full"
-                        w="full"
-                        borderRadius="10px"
-                      />
-                    )}
-                  </Stack>
-                </GridItem>
-              );
-            })}
+                      {isVideo ? (
+                        <Box
+                          as="video"
+                          id="user-video"
+                          objectFit="cover"
+                          bg="white"
+                          flex={1}
+                          h="full"
+                          w="full"
+                          borderRadius="4px"
+                        />
+                      ) : (
+                        <Box
+                          as="canvas"
+                          id={`user-canvas-${user.userId}`}
+                          objectFit="cover"
+                          bg="white"
+                          w="full"
+                          h="full"
+                          borderRadius="4px"
+                        />
+                      )}
+                    </Stack>
+                  </GridItem>
+                );
+              }
+            )}
           </Grid>
         </HStack>
 

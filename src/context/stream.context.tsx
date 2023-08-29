@@ -16,6 +16,7 @@ interface IStremContext {
   renderUsersVideo: () => void;
   callId?: string;
   currentUserBackend?: CurrentUserBackend;
+  getUsers: () => void;
 }
 
 const StreamContext = createContext<IStremContext>({} as IStremContext);
@@ -46,6 +47,15 @@ export const StreamProvider: React.FC<Props> = ({
   const [users, setUsers] = useState<Participant[]>([]);
   const [started, setStarted] = useState(false);
 
+  const getUsers = async () => {
+    try {
+      const users = client.getAllUser();
+      setUsers(users);
+    } catch (error) {
+      console.log("erro ao carregar usuarios: ", error);
+    }
+  };
+
   useEffect(() => {
     init();
 
@@ -67,7 +77,7 @@ export const StreamProvider: React.FC<Props> = ({
 
   useEffect(() => {
     if (!!stream) {
-      client.on("passively-stop-share", (payload) => {
+      client.on("passively-stop-share", () => {
         stream.stopShareScreen().catch((e) => console.log(e));
       });
 
@@ -145,15 +155,6 @@ export const StreamProvider: React.FC<Props> = ({
 
   const renderUsersVideo = async () => {
     try {
-      await stream?.startVideo({
-        videoElement: document.querySelector(`#user-video`) as any,
-        hd: false,
-      });
-    } catch (error) {
-      console.log("erro ao iniciar video: ", error);
-    }
-
-    try {
       const allUsers = client.getAllUser();
       for (let i = 0; i < allUsers.length; i++) {
         const user = allUsers[i];
@@ -161,11 +162,11 @@ export const StreamProvider: React.FC<Props> = ({
           ?.renderVideo(
             document.querySelector(`#user-canvas-${user.userId}`)!,
             user.userId,
-            780,
-            520,
+            460,
+            200,
             0,
             0,
-            2
+            1
           )
           .catch((e) => console.log(e));
       }
@@ -191,6 +192,7 @@ export const StreamProvider: React.FC<Props> = ({
         renderUsersVideo,
         callId,
         currentUserBackend,
+        getUsers,
       }}
     >
       {children}
