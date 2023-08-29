@@ -17,12 +17,15 @@ import {
   BsCameraVideoOff,
   BsGrid1X2,
   BsGrid,
+  BsRecordCircleFill,
+  BsRecordCircle,
 } from "react-icons/bs";
 import { FiLogOut } from "react-icons/fi";
 import { LuScreenShare, LuScreenShareOff } from "react-icons/lu";
 import _ from "lodash";
 import { Participant } from "@zoom/videosdk";
 import { useVideoActions } from "../../context/video-actions.context";
+import { useRecord } from "../../hooks/useRecord";
 
 interface VideoBoxProps {
   isAdmin: boolean;
@@ -41,6 +44,8 @@ const VideoBox: React.FC<VideoBoxProps> = ({ isAdmin, users, currentUser }) => {
     isGrid,
     setIsGrid,
   } = useVideoActions();
+
+  const { startRecording, startedRecording, stopRecording } = useRecord();
 
   return (
     <Box
@@ -145,39 +150,68 @@ const VideoBox: React.FC<VideoBoxProps> = ({ isAdmin, users, currentUser }) => {
               <Button
                 bg="white"
                 borderRadius="50px"
-                w="60px"
                 h="60px"
                 onClick={() => toggleAudio()}
+                leftIcon={
+                  !isMuted ? <BsMic size={22} /> : <BsMicMute size={22} />
+                }
               >
-                {!isMuted ? <BsMic size={22} /> : <BsMicMute size={22} />}
+                {!isMuted ? "Desligar microfone" : "Ligar microfone"}
               </Button>
 
               <Button
                 bg={!videoOn ? "white" : "#DCAC36"}
                 borderRadius="60px"
-                w="60px"
                 h="60px"
                 onClick={() => toggleVideo(currentUser!)}
+                color={!videoOn ? "black" : "white"}
+                leftIcon={
+                  videoOn ? (
+                    <BsCameraVideo size={22} color="white" />
+                  ) : (
+                    <BsCameraVideoOff size={22} />
+                  )
+                }
               >
-                {videoOn ? (
-                  <BsCameraVideo size={22} color="white" />
-                ) : (
-                  <BsCameraVideoOff size={22} />
-                )}
+                {videoOn ? "Desligar câmera" : "Ligar câmera"}
               </Button>
 
               <Button
                 bg={!isSharing ? "white" : "#DCAC36"}
                 borderRadius="60px"
-                w="60px"
                 h="60px"
                 onClick={toggleShare}
+                leftIcon={
+                  isSharing ? (
+                    <LuScreenShareOff size={22} color="white" />
+                  ) : (
+                    <LuScreenShare size={22} />
+                  )
+                }
               >
-                {isSharing ? (
-                  <LuScreenShareOff size={22} color="white" />
-                ) : (
-                  <LuScreenShare size={22} />
-                )}
+                Compartilhar tela
+              </Button>
+
+              <Button
+                bg="white"
+                borderRadius="60px"
+                h="60px"
+                onClick={() => {
+                  if (startedRecording) {
+                    stopRecording();
+                  } else {
+                    startRecording();
+                  }
+                }}
+                leftIcon={
+                  startedRecording ? (
+                    <BsRecordCircleFill size={20} />
+                  ) : (
+                    <BsRecordCircle size={22} />
+                  )
+                }
+              >
+                {startedRecording ? "Parar gravação" : "Gravar"}
               </Button>
 
               <Button

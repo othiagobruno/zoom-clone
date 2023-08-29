@@ -1,5 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import ZoomVideo, { Participant, Stream, VideoClient } from "@zoom/videosdk";
+import ZoomVideo, {
+  Participant,
+  RecordingClient,
+  Stream,
+  VideoClient,
+} from "@zoom/videosdk";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import zoomContext from "./zoom.context";
 import { generateSignature } from "../utils/singature";
@@ -17,6 +22,7 @@ interface IStremContext {
   callId?: string;
   currentUserBackend?: CurrentUserBackend;
   getUsers: () => void;
+  cloudRecord: typeof RecordingClient | undefined;
 }
 
 const StreamContext = createContext<IStremContext>({} as IStremContext);
@@ -44,6 +50,7 @@ export const StreamProvider: React.FC<Props> = ({
 
   const [currentUser, setCurrentUser] = useState<Participant>();
   const [stream, setStream] = useState<typeof Stream>();
+  const [cloudRecord, setCloudRecord] = useState<typeof RecordingClient>();
   const [users, setUsers] = useState<Participant[]>([]);
   const [started, setStarted] = useState(false);
 
@@ -113,6 +120,10 @@ export const StreamProvider: React.FC<Props> = ({
         }
 
         const stream = client.getMediaStream();
+        const cloudRecording = client.getRecordingClient();
+
+        setCloudRecord(cloudRecording);
+
         try {
           await stream?.startAudio({ mute: true });
           stream?.muteAudio();
@@ -193,6 +204,7 @@ export const StreamProvider: React.FC<Props> = ({
         callId,
         currentUserBackend,
         getUsers,
+        cloudRecord,
       }}
     >
       {children}
