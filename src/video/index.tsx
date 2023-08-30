@@ -80,7 +80,7 @@ export function Zoom() {
         <Box
           display="flex"
           flexDirection="column"
-          flex="0.4"
+          flex="0.5"
           bg="#F2F2F2"
           h="full"
           borderRadius="0 20px 20px 0"
